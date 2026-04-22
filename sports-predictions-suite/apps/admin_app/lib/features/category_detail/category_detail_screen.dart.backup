@@ -1,0 +1,452 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import 'package:predictions_shared/predictions_shared.dart';
+import '../controllers/dashboard_providers.dart';
+import '../controllers/prediction_admin_controller.dart';
+import '../dashboard/prediction_form_sheet.dart';
+
+class CategoryDetailScreen extends ConsumerStatefulWidget {
+  final PredictionCategory category;
+
+  const CategoryDetailScreen({
+    super.key,
+    required this.category,
+  });
+
+  @override
+  ConsumerState<CategoryDetailScreen> createState() => _CategoryDetailScreenState();
+}
+
+class _CategoryDetailScreenState extends ConsumerState<CategoryDetailScreen> {
+  final Set<String> _selectedPredictions = {};
+  bool _isSelectionMode = false;
+
+  void _toggleSelection(String predictionId) {
+    setState(() {
+      if (_selectedPredictions.contains(predictionId)) {
+        _selectedPredictions.remove(predictionId);
+        if (_selectedPredictions.isEmpty) {
+          _isSelectionMode = false;
+        }
+      } else {
+        _selectedPredictions.add(predictionId);
+        _isSelectionMode = true;
+      }
+    });
+  }
+
+  void _cancelSelection() {
+    setState(() {
+      _selectedPredictions.clear();
+      _isSelectionMode = false;
+    });
+  }
+
+  Future<void> _deleteSelected() async {
+    final predictions = await ref.read(predictionsByCategoryProvider(widget.category).future);
+    final toDelete = predictions.where((p) => _selectedPredictions.contains(p.id)).toList();
+    
+    if (!mounted) return;
+    
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Predictions'),
+        content: Text(
+          'Are you sure you want to delete ${_selectedPredictions.length} prediction(s)?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      final controller = ref.read(predictionAdminControllerProvider.notifier);
+      for (final prediction in toDelete) {
+        await controller.deleteMatch(category: widget.category, match: prediction);
+      }
+      setState(() {
+        _selectedPredictions.clear();
+        _isSelectionMode = false;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Deleted ${toDelete.length} prediction(s)')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final predictionsAsync = ref.watch(predictionsByCategoryProvider(widget.category));
+
+    return Scaffold(
+      appBar: AppBar(
+        leading: _isSelectionMode
+            ? IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: _cancelSelection,
+              )
+            : null,
+        title: _isSelectionMode
+            ? Text('${_selectedPredictions.length} selected')
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(widget.category.title),
+                  Text(
+                    widget.category.subtitle,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.white70,
+                        ),
+                  ),
+                ],
+              ),
+        actions: [
+          if (_isSelectionMode)
+            IconButton(
+              onPressed: _deleteSelected,
+              icon: const Icon(Icons.delete),
+              tooltip: 'Delete Selected',
+            )
+          else ...[
+            IconButton(
+              onPressed: () {
+                setState(() {
+                  _isSelectionMode = true;
+                });
+              },
+              icon: const Icon(Icons.checklist),
+              tooltip: 'Select Multiple',
+            ),
+            IconButton(
+              onPressed: () {
+                _showAddPredictionSheet(context, ref, widget.category);
+              },
+              icon: const Icon(Icons.add),
+              tooltip: 'Add Match',
+            ),
+          ],
+        ],
+      ),
+      body: predictionsAsync.when(
+        data: (predictions) {
+          if (predictions.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.sports_soccer_outlined,
+                    size: 64,
+                    color: Colors.grey.shade600,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No predictions yet',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: Colors.grey.shade400,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Tap the + button to add a match',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey.shade600,
+                        ),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: predictions.length,
+            itemBuilder: (context, index) {
+              final prediction = predictions[index];
+              final isSelected = _selectedPredictions.contains(prediction.id);
+              
+              return _PredictionCard(
+                key: ValueKey(prediction.id),
+                prediction: prediction,
+                category: widget.category,
+                isSelected: isSelected,
+                isSelectionMode: _isSelectionMode,
+                onToggleSelection: () => _toggleSelection(prediction.id),
+                onLongPress: () => _copyPredictionFromExisting(context, ref, prediction),
+                onEdit: () => _showEditPredictionSheet(prediction),
+                onSetResult: () => _showResultSheet(prediction),
+              );
+            },
+          );
+                                      color: Colors.grey.shade500,
+                                    ),
+                          ),
+                          const SizedBox(width: 16),
+                          Icon(
+                            Icons.sports_score,
+                            size: 16,
+                            color: widget.category.accentColor,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            prediction.prediction,
+                            style:
+                                Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      color: widget.category.accentColor,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                          ),
+                          if (prediction.odds != null) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.shade700.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                '@${prediction.odds}',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      color: Colors.amber.shade700,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      if (!_isSelectionMode) ...[
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 4,
+                          runSpacing: 4,
+                          alignment: WrapAlignment.end,
+                          children: [
+                            TextButton.icon(
+                              onPressed: () {
+                                _showEditPredictionSheet(
+                                    context, ref, widget.category, prediction);
+                              },
+                              icon: const Icon(Icons.edit, size: 16),
+                              label: const Text('Edit', style: TextStyle(fontSize: 12)),
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                            ),
+                            TextButton.icon(
+                              onPressed: () {
+                                _showUpdateResultDialog(
+                                    context, ref, widget.category, prediction);
+                              },
+                              icon: const Icon(Icons.check_circle, size: 16),
+                              label: const Text('Result', style: TextStyle(fontSize: 12)),
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                            ),
+                            TextButton.icon(
+                              onPressed: () {
+                                _showDeleteDialog(
+                                    context, ref, widget.category, prediction);
+                              },
+                              icon: const Icon(Icons.delete, size: 16),
+                              label: const Text('Delete', style: TextStyle(fontSize: 12)),
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.red,
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              );
+            },
+          );
+        },
+        loading: () => const Center(
+          child: CircularProgressIndicator(),
+        ),
+        error: (error, stack) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.error_outline,
+                size: 64,
+                color: Colors.red,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Error loading predictions',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                error.toString(),
+                style: Theme.of(context).textTheme.bodySmall,
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResultChip(PredictionResult result) {
+    Color color;
+    String label;
+
+    switch (result) {
+      case PredictionResult.won:
+        color = Colors.green;
+        label = 'WON';
+        break;
+      case PredictionResult.lost:
+        color = Colors.red;
+        label = 'LOST';
+        break;
+      case PredictionResult.pending:
+        color = Colors.orange;
+        label = 'PENDING';
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+
+  void _showAddPredictionSheet(
+    BuildContext context,
+    WidgetRef ref,
+    PredictionCategory category,
+  ) {
+    showPredictionFormSheet(context, category: category);
+  }
+
+  void _showEditPredictionSheet(
+    BuildContext context,
+    WidgetRef ref,
+    PredictionCategory category,
+    Prediction prediction,
+  ) {
+    showPredictionFormSheet(
+      context,
+      category: category,
+      prediction: prediction,
+    );
+  }
+
+  void _showUpdateResultDialog(
+    BuildContext context,
+    WidgetRef ref,
+    PredictionCategory category,
+    Prediction prediction,
+  ) {
+    showResultSheet(
+      context,
+      category: category,
+      prediction: prediction,
+    );
+  }
+
+  void _showDeleteDialog(
+    BuildContext context,
+    WidgetRef ref,
+    PredictionCategory category,
+    Prediction prediction,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Prediction'),
+        content: Text(
+          'Are you sure you want to delete "${prediction.homeTeam} vs ${prediction.awayTeam}"?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              final controller =
+                  ref.read(predictionAdminControllerProvider.notifier);
+              controller.deleteMatch(category: category, match: prediction);
+              Navigator.pop(context);
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _copyPredictionFromExisting(
+    BuildContext context,
+    WidgetRef ref,
+    Prediction prediction,
+  ) {
+    final draft = PredictionDraft(
+      league: prediction.league,
+      matchTime: prediction.matchTime,
+      homeTeam: prediction.homeTeam,
+      awayTeam: prediction.awayTeam,
+      prediction: prediction.prediction,
+    );
+    
+    ref.read(copiedPredictionProvider.notifier).state = draft;
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Prediction copied! You can paste it in any category.'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+}

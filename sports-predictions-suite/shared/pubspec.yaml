@@ -1,0 +1,15 @@
+name: shared_resources
+description: Shared models, themes, and constants for the Sports Predictions Suite.
+version: 1.0.0+1
+publish_to: 'none'
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cloud_firestore: ^6.1.0
+
+dev_dependencies:
+  flutter_lints: ^6.0.0

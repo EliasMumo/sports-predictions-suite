@@ -1,0 +1,17 @@
+analysis:
+  errors:
+    - error_on_untyped_parameters
+    - error_on_untyped_null_aware
+  linter:
+    rules:
+      - prefer_single_quotes
+      - always_declare_return_types
+      - avoid_print
+      - unnecessary_new
+      - prefer_const_constructors
+      - public_member_api_docs
+      - lines_longer_than_80_chars: false
+  analyzer:
+    strong-mode:
+      implicit-casts: false
+      implicit-dynamic: false

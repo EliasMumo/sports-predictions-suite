@@ -1,0 +1,20 @@
+name: predictions_shared
+description: Shared models, theme, and Firestore repository for Sports Predictions Suite.
+version: 0.1.0
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cloud_firestore: ^6.1.0
+  intl: ^0.20.2
+  google_fonts: ^6.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
