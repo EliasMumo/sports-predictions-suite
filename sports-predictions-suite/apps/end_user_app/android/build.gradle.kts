@@ -4,6 +4,14 @@ plugins {
     id("com.google.gms.google-services") version "4.3.15" apply false
 }
 
+subprojects {
+    project.evaluationDependsOn(":app")
+}
+
+tasks.register<Delete>("clean") {
+    delete(rootProject.buildDir)
+}
+
 allprojects {
     repositories {
         google()

@@ -64,5 +64,27 @@ flutter {
     source = "../.."
 }
 
+val flutterProjectRoot = rootProject.projectDir.parentFile ?: rootProject.projectDir
+val flutterApkOutputDir = flutterProjectRoot.resolve("build/app/outputs/flutter-apk")
+val flutterBundleOutputDir = flutterProjectRoot.resolve("build/app/outputs/bundle/release")
+
+val copyDebugApkToFlutterBuild = tasks.register<Copy>("copyDebugApkToFlutterBuild") {
+    from(layout.buildDirectory.file("outputs/flutter-apk/app-debug.apk"))
+    into(flutterApkOutputDir)
+}
+
+val copyReleaseAabToFlutterBuild = tasks.register<Copy>("copyReleaseAabToFlutterBuild") {
+    from(layout.buildDirectory.file("outputs/bundle/release/app-release.aab"))
+    into(flutterBundleOutputDir)
+}
+
+tasks.matching { it.name == "assembleDebug" }.configureEach {
+    finalizedBy(copyDebugApkToFlutterBuild)
+}
+
+tasks.matching { it.name == "bundleRelease" }.configureEach {
+    finalizedBy(copyReleaseAabToFlutterBuild)
+}
+
 // Add at the very bottom
 apply(plugin = "com.google.gms.google-services")

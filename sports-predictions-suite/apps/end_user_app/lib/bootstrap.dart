@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:predictions_shared/predictions_shared.dart';
 
-import 'firebase_options.dart';
 import 'splash_screen.dart';
 import 'src/services/vip_service.dart';
 
@@ -31,9 +30,7 @@ Future<void> bootstrap(FutureOr<Widget> Function() builder) async {
   runApp(const SplashScreen());
   
   // Initialize Firebase and notifications
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp();
   
   // Initialize notifications
   await NotificationService.instance.initialize();
