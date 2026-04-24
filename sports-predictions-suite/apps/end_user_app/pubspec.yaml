@@ -1,7 +1,6 @@
 name: end_user_app
 description: Production-ready end-user experience for the Sports Predictions Suite.
 publish_to: none
-
 version: 1.0.0+5
 
 environment:
