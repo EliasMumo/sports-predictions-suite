@@ -40,6 +40,16 @@ class SettingsScreen extends StatelessWidget {
     }
   }
 
+  Future<void> _launchRefundRequest() async {
+    final uri = Uri.https(
+      'support.google.com',
+      '/googleplay/answer/15574897',
+    );
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      throw Exception('Could not launch Google Play refund help');
+    }
+  }
+
   Future<void> _launchSupportEmail() async {
     final uri = Uri(
       scheme: 'mailto',
@@ -57,6 +67,49 @@ class SettingsScreen extends StatelessWidget {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const VipTipsScreen()),
+    );
+  }
+
+  void _showRefundInstructions(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Refund Requests',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Refund eligibility is decided by Google Play policy. To request a refund, open Google Play, go to Payments & subscriptions, then Budget & order history, choose this purchase, and tap Report a problem.',
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Canceling a subscription stops future renewals, but it does not automatically refund the current billing period.',
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: _launchRefundRequest,
+                    icon: const Icon(Icons.open_in_new),
+                    label: const Text('Open Google Play Refund Help'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -79,10 +132,17 @@ class SettingsScreen extends StatelessWidget {
       ),
       _SettingTile(
         icon: Icons.receipt_long,
-        title: 'Subscription Management',
-        subtitle: 'Manage or cancel your subscription',
+        title: 'Cancel Subscription',
+        subtitle: 'Stop future renewals in Google Play',
         onTap: _launchSubscriptionManagement,
         color: AppColors.royal,
+      ),
+      _SettingTile(
+        icon: Icons.assignment_return,
+        title: 'Refund Requests',
+        subtitle: 'How to request a refund through Google Play',
+        onTap: () => _showRefundInstructions(context),
+        color: Colors.green.shade600,
       ),
       _SettingTile(
         icon: Icons.email_outlined,
