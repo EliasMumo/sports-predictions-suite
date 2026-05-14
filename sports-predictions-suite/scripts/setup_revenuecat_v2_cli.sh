@@ -56,4 +56,4 @@ echo "$OFFERINGS_JSON" | head -c 600; echo
 
 echo "==> NOTE"
 echo "RevenueCat public SDK key (goog_...) must be supplied to app build via:"
-echo "flutter build appbundle --dart-define=REVENUECAT_PUBLIC_API_KEY=goog_..."
+echo "REVENUECAT_PUBLIC_API_KEY=goog_... ./scripts/build_end_user_appbundle.sh"

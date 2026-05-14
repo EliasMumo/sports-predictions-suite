@@ -18,7 +18,7 @@ flutter run --dart-define=REVENUECAT_PUBLIC_API_KEY=goog_...
 
 or for release:
 
-flutter build appbundle --dart-define=REVENUECAT_PUBLIC_API_KEY=goog_...
+REVENUECAT_PUBLIC_API_KEY=goog_... ../../scripts/build_end_user_appbundle.sh
 
 If the key is missing or invalid, the app now still opens, but purchases are disabled.
 

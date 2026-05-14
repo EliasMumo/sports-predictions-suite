@@ -134,7 +134,7 @@ export RC_PROJECT_ID='projc3646c76'
 End-user app builds must pass the RevenueCat public SDK key:
 
 ```bash
-flutter build appbundle --dart-define=REVENUECAT_PUBLIC_API_KEY=goog_...
+REVENUECAT_PUBLIC_API_KEY=goog_... ./scripts/build_end_user_appbundle.sh
 ```
 
 ## Extending the Suite

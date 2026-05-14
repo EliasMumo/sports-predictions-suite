@@ -11,7 +11,7 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 /// RevenueCat public SDK key (Google Play).
 ///
 /// Pass this at build time:
-/// flutter build appbundle --dart-define=REVENUECAT_PUBLIC_API_KEY=goog_...
+/// ../../scripts/build_end_user_appbundle.sh
 const String revenueCatPublicApiKey = String.fromEnvironment(
   'REVENUECAT_PUBLIC_API_KEY',
   defaultValue: '',
