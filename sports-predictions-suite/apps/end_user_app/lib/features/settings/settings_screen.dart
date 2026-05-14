@@ -30,7 +30,7 @@ class SettingsScreen extends StatelessWidget {
     }
   }
 
-  Future<void> _launchSubscriptionManagement() async {
+  Future<void> _launchGooglePlaySubscriptions() async {
     final uri = Uri.https(
       'play.google.com',
       '/store/account/subscriptions',
@@ -38,6 +38,49 @@ class SettingsScreen extends StatelessWidget {
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       throw Exception('Could not launch subscription management');
     }
+  }
+
+  void _showCancellationInstructions(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Cancel in Google Play',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Subscriptions are managed by Google Play. To cancel, open Google Play, go to Payments & subscriptions, then Subscriptions, choose this app, and tap Cancel subscription.',
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Uninstalling the app does not cancel your subscription. After cancellation, access usually continues until the end of the paid billing period.',
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: _launchGooglePlaySubscriptions,
+                    icon: const Icon(Icons.open_in_new),
+                    label: const Text('Open Google Play Subscriptions'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _launchRefundRequest() async {
@@ -132,9 +175,9 @@ class SettingsScreen extends StatelessWidget {
       ),
       _SettingTile(
         icon: Icons.receipt_long,
-        title: 'Cancel Subscription',
-        subtitle: 'Stop future renewals in Google Play',
-        onTap: _launchSubscriptionManagement,
+        title: 'Cancel in Google Play',
+        subtitle: 'Stop renewals from the Play Store',
+        onTap: () => _showCancellationInstructions(context),
         color: AppColors.royal,
       ),
       _SettingTile(
